@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pinskin_행사참여</title>
+<style>
+  :root{
+    --navy: #0b1c3f;
+    --navy-deep: #060f24;
+    --navy-mid: #16305e;
+    --navy-soft: #2c4a86;
+    --white: #ffffff;
+    --off-white: #eef2fa;
+    --shadow: rgba(6, 15, 36, 0.35);
+  }
+  *{ box-sizing: border-box; margin:0; padding:0; }
+  html,body{ height:100%; width:100%; overflow-x:hidden; }
+  body{
+    font-family: 'Malgun Gothic','Segoe UI',system-ui,-apple-system,sans-serif;
+    background: var(--navy-deep);
+    color: var(--navy);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ---------- floating background blobs ---------- */
+  .bg-decor{ position: fixed; inset:0; overflow:hidden; z-index:0; pointer-events:none; }
+  .blob{
+    position:absolute; border-radius:50%;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), rgba(255,255,255,0.02) 60%);
+    filter: blur(2px);
+    animation: floatY ease-in-out infinite;
+  }
+  .blob1{ width:260px; height:260px; top:8%; left:6%; animation-duration:9s; }
+  .blob2{ width:180px; height:180px; top:60%; left:80%; animation-duration:11s; animation-delay:1s;}
+  .blob3{ width:120px; height:120px; top:78%; left:12%; animation-duration:7.5s; animation-delay:.5s;}
+  .blob4{ width:340px; height:340px; top:-8%; left:65%; animation-duration:13s; animation-delay:2s;}
+
+  @keyframes floatY{
+    0%,100%{ transform: translateY(0) translateX(0); }
+    50%{ transform: translateY(-26px) translateX(10px); }
+  }
+  @keyframes floatSlow{
+    0%,100%{ transform: translateY(0) rotate(0deg); }
+    50%{ transform: translateY(-16px) rotate(4deg); }
+  }
+  @keyframes popIn{
+    from{ opacity:0; transform: translateY(24px) scale(.96); }
+    to{ opacity:1; transform: translateY(0) scale(1); }
+  }
+
+  /* ---------- screen management ---------- */
+  .screen{
+    position: fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; visibility:hidden; pointer-events:none;
+    z-index:1;
+  }
+  .screen.active{
+    opacity:1; visibility:visible; pointer-events:auto;
+  }
+
+  /* ================= HOME SCREEN ================= */
+  #screen-home{
+    background: var(--white);
+    flex-direction:column;
+    padding: 0;
+  }
+  .home-inner{
+    width:100%; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding: 24px;
+    overflow-y:auto;
+    position:relative; z-index:2;
+  }
+  .home-header{
+    display:flex; flex-direction:column; align-items:center; gap:0px; margin-bottom: 4px;
+  }
+  .home-header img{
+    width:min(220px, 45vw); height:min(220px, 45vw); object-fit:contain;
+    margin-bottom: -30px;
+    animation: floatSlow 5s ease-in-out infinite;
+  }
+  .home-header h1{
+    color: var(--navy); font-size:clamp(26px, 8vw, 44px); letter-spacing:1px; font-weight:900;
+    text-align:center; overflow-wrap: anywhere;
+  }
+  .home-tagline{
+    color: var(--navy-soft);
+    font-size: 15px;
+    margin-top:10px;
+    margin-bottom: 48px;
+    letter-spacing:0.5px;
+    font-weight:700;
+    text-align:center;
+  }
+
+  .banner-grid{
+    display:flex; flex-direction:column;
+    gap: 20px;
+    width: min(420px, 92vw);
+    margin: 0 auto;
+  }
+
+  .banner{
+    position:relative;
+    background: var(--white);
+    border: 2.5px solid var(--navy);
+    border-radius: 24px;
+    padding: 30px 26px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    overflow:hidden;
+    cursor:pointer;
+    box-shadow: 0 16px 40px rgba(11,28,63,0.10);
+    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+  }
+  .banner:hover{
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 28px 60px rgba(11,28,63,0.20);
+    border-color: var(--navy-deep);
+  }
+  .banner.admin{
+    background: var(--off-white);
+  }
+  .banner-badge{
+    display:inline-block;
+    font-size:11px; font-weight:800; letter-spacing:1.5px;
+    color: var(--navy);
+    background: var(--off-white);
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+  }
+  .banner h2{
+    font-size: 22px; color: var(--navy); font-weight:800; margin-bottom:8px;
+  }
+  .banner p{
+    font-size: 13px; color:#5b6786; line-height:1.6;
+  }
+
+  /* ================= DETAIL SCREENS ================= */
+  .detail-screen{
+    background: linear-gradient(180deg, var(--off-white) 0%, #ffffff 60%);
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .detail-inner{
+    width:100%; height:100%;
+    overflow-y:auto;
+    position:relative; z-index:2;
+    padding: 30px 24px 60px;
+  }
+  .detail-topbar{
+    max-width: 520px; margin: 0 auto 30px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .back-btn{
+    display:flex; align-items:center; gap:8px;
+    background: var(--navy);
+    color:#fff; border:none;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size:13px; font-weight:700;
+    cursor:pointer;
+    transition: transform .2s ease, background .2s ease;
+  }
+  .back-btn:hover{ transform: translateX(-3px); background: var(--navy-mid); }
+  .detail-topbar .mini-logo{
+    width:34px; height:34px; object-fit:contain;
+  }
+
+  .detail-hero{
+    max-width: 520px; margin: 0 auto 30px;
+    text-align:center;
+  }
+  .detail-hero h2{
+    font-size: 26px; font-weight:900; color: var(--navy); letter-spacing:0.5px;
+  }
+  .detail-hero p{
+    margin-top:10px; color:#5b6786; font-size:13px; font-weight:600;
+  }
+
+  /* ---------- form ---------- */
+  .form-card{
+    max-width: 420px; margin: 0 auto;
+    background:#fff;
+    border: 1.5px solid #e6eaf4;
+    border-radius: 18px;
+    padding: 28px 24px;
+    box-shadow: 0 10px 26px rgba(11,28,63,0.06);
+    animation: popIn .4s ease;
+  }
+  .form-group{ margin-bottom:18px; text-align:left; }
+  .form-group label{
+    display:block; font-size:13px; font-weight:800; color: var(--navy); margin-bottom:8px;
+  }
+  .form-group input{
+    width:100%; padding: 13px 14px;
+    border: 1.5px solid #d7deee; border-radius: 12px;
+    font-size:15px; color: var(--navy);
+    outline:none;
+    transition: border-color .2s ease;
+    font-family: inherit;
+  }
+  .form-group input:focus{ border-color: var(--navy-soft); }
+  .submit-btn{
+    width:100%; padding: 14px;
+    background: var(--navy); color:#fff;
+    border:none; border-radius: 999px;
+    font-size:15px; font-weight:800;
+    cursor:pointer;
+    margin-top:6px;
+    transition: background .2s ease, transform .2s ease;
+  }
+  .submit-btn:hover{ background: var(--navy-mid); transform: translateY(-2px); }
+  .form-msg{
+    text-align:center; font-size:13px; font-weight:700; margin-top:14px;
+    min-height:18px;
+  }
+  .form-msg.ok{ color:#1a8a4d; }
+  .form-msg.err{ color:#e63946; }
+
+  /* ---------- admin list ---------- */
+  .admin-toolbar{
+    max-width: 560px; margin: 0 auto 18px;
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px;
+  }
+  .admin-count{
+    font-size:13px; font-weight:800; color: var(--navy-soft);
+  }
+  .add-toggle{
+    background: var(--navy-soft); color:#fff; border:none;
+    padding: 9px 16px; border-radius:999px; font-size:12.5px; font-weight:800;
+    cursor:pointer;
+  }
+  .add-toggle:hover{ background: var(--navy-mid); }
+
+  .attendee-list{
+    max-width: 560px; margin: 0 auto; display:flex; flex-direction:column; gap:10px;
+  }
+  .attendee-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background:#fff; border:1.5px solid #e6eaf4; border-radius:14px;
+    padding: 14px 16px;
+    box-shadow: 0 6px 18px rgba(11,28,63,0.05);
+    animation: popIn .3s ease;
+  }
+  .attendee-info{ display:flex; flex-direction:column; gap:3px; }
+  .attendee-info .name{ font-size:15px; font-weight:800; color: var(--navy); }
+  .attendee-info .dept{ font-size:12.5px; color:#5b6786; font-weight:600; }
+  .attendee-info .time{ font-size:11px; color:#9aa4bd; }
+  .del-btn{
+    background:#fdecee; color:#e63946; border:none;
+    width:34px; height:34px; border-radius:50%;
+    font-size:16px; font-weight:900; cursor:pointer;
+    flex-shrink:0;
+    transition: background .2s ease;
+  }
+  .del-btn:hover{ background:#f9c9ce; }
+  .empty-note{
+    max-width:560px; margin: 30px auto; text-align:center;
+    color:#9aa4bd; font-size:13px; font-weight:600;
+  }
+
+  /* ---------- google sheet export ---------- */
+  .gsheet-block{
+    max-width:560px; margin: 34px auto 0;
+    padding-top: 24px;
+    border-top: 1px dashed #dfe4ef;
+    text-align:center;
+  }
+  .gsheet-btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; padding: 14px;
+    background:#1a73e8; color:#fff;
+    border:none; border-radius: 999px;
+    font-size:14.5px; font-weight:800;
+    cursor:pointer;
+    transition: background .2s ease, transform .2s ease;
+  }
+  .gsheet-btn:hover{ background:#1558b0; transform: translateY(-2px); }
+  .gsheet-btn:disabled{ opacity:.6; cursor:default; transform:none; }
+  .gsheet-link{
+    display:inline-block; margin-top:12px;
+    font-size:12px; color:#9aa4bd; font-weight:700;
+    text-decoration:underline; cursor:pointer; background:none; border:none;
+  }
+  .gsheet-status{
+    margin-top:12px; font-size:12.5px; font-weight:700; min-height:16px;
+  }
+  .gsheet-status.ok{ color:#1a8a4d; }
+  .gsheet-status.err{ color:#e63946; }
+
+  /* ---------- password overlay ---------- */
+  .pw-overlay{
+    position: fixed; inset:0; z-index: 20;
+    background: rgba(6,15,36,0.55);
+    display:flex; align-items:center; justify-content:center;
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition: opacity .2s ease;
+  }
+  .pw-overlay.active{ opacity:1; visibility:visible; pointer-events:auto; }
+  .pw-card{
+    width:min(320px, 88vw);
+    background:#fff; border-radius:20px; padding: 28px 24px;
+    text-align:center;
+    box-shadow: 0 24px 60px rgba(6,15,36,0.4);
+    animation: popIn .3s ease;
+  }
+  .pw-card h3{ font-size:17px; font-weight:900; color: var(--navy); margin-bottom:16px; }
+  .pw-card input{
+    width:100%; padding: 12px 14px;
+    border: 1.5px solid #d7deee; border-radius: 12px;
+    font-size:15px; text-align:center;
+    outline:none; margin-bottom:12px;
+    font-family: inherit;
+  }
+  .pw-actions{ display:flex; gap:8px; }
+  .pw-actions button{
+    flex:1; padding: 11px; border:none; border-radius:999px;
+    font-size:13px; font-weight:800; cursor:pointer;
+  }
+  .pw-cancel{ background: var(--off-white); color: var(--navy); }
+  .pw-confirm{ background: var(--navy); color:#fff; }
+  .pw-confirm:hover{ background: var(--navy-mid); }
+  .pw-cancel:hover{ background:#dfe4ef; }
+</style>
+</head>
+<body>
+
+<div class="bg-decor">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="blob blob3"></div>
+  <div class="blob blob4"></div>
+</div>
+
+<!-- ===================== HOME SCREEN ===================== -->
+<section id="screen-home" class="screen active">
+  <div class="home-inner">
+    <div class="home-header">
+      <img src="logo.png" alt="Pinskin Logo">
+      <h1>핀스킨 행사 참여</h1>
+    </div>
+    <div class="home-tagline">아래 버튼을 눌러 참석 등록을 진행해주세요</div>
+
+    <div class="banner-grid">
+      <div class="banner" onclick="goTo('register')">
+        <div class="banner-badge">JOIN</div>
+        <h2>참여 등록하기</h2>
+        <p>이름과 학과를 입력하고 행사 참석자 명단에 등록해요.</p>
+      </div>
+
+      <div class="banner admin" onclick="openPasswordGate()">
+        <div class="banner-badge">ADMIN</div>
+        <h2>참석자 관리</h2>
+        <p>비밀번호 확인 후 참석자 명단을 확인하고 관리할 수 있어요.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== REGISTER SCREEN ===================== -->
+<section id="screen-register" class="screen detail-screen">
+  <div class="detail-inner">
+    <div class="detail-topbar">
+      <button class="back-btn" onclick="goTo('home')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg>
+        홈으로
+      </button>
+      <img src="logo.png" class="mini-logo" alt="logo">
+    </div>
+    <div class="detail-hero">
+      <h2>참여 등록</h2>
+      <p>이름과 학과를 입력해주세요</p>
+    </div>
+    <div class="form-card">
+      <form id="registerForm" onsubmit="return submitRegister(event)">
+        <div class="form-group">
+          <label for="regName">이름</label>
+          <input type="text" id="regName" placeholder="예) 홍길동" autocomplete="off" required>
+        </div>
+        <div class="form-group">
+          <label for="regDept">학과</label>
+          <input type="text" id="regDept" placeholder="예) 기계공학과" autocomplete="off" required>
+        </div>
+        <button type="submit" class="submit-btn">완료</button>
+        <div id="registerMsg" class="form-msg"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ADMIN SCREEN ===================== -->
+<section id="screen-admin" class="screen detail-screen">
+  <div class="detail-inner">
+    <div class="detail-topbar">
+      <button class="back-btn" onclick="goTo('home')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg>
+        홈으로
+      </button>
+      <img src="logo.png" class="mini-logo" alt="logo">
+    </div>
+    <div class="detail-hero">
+      <h2>참석자 관리</h2>
+      <p>등록된 참석자를 확인하고 추가/삭제할 수 있어요</p>
+    </div>
+
+    <div class="admin-toolbar">
+      <span class="admin-count" id="adminCount">총 0명</span>
+      <button class="add-toggle" onclick="toggleAddForm()">+ 직접 추가</button>
+    </div>
+
+    <div class="form-card" id="addForm" style="display:none; margin-bottom:22px;">
+      <div class="form-group">
+        <label for="addName">이름</label>
+        <input type="text" id="addName" placeholder="예) 홍길동" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="addDept">학과</label>
+        <input type="text" id="addDept" placeholder="예) 기계공학과" autocomplete="off">
+      </div>
+      <button type="button" class="submit-btn" onclick="adminAdd()">추가</button>
+    </div>
+
+    <div class="attendee-list" id="attendeeList"></div>
+    <div class="empty-note" id="emptyNote" style="display:none;">아직 등록된 참석자가 없어요.</div>
+
+    <div class="gsheet-block">
+      <button class="gsheet-btn" id="gsheetBtn" onclick="saveToGoogleSheet()">구글 시트로 저장받기</button>
+      <div id="gsheetStatus" class="gsheet-status"></div>
+      <button type="button" class="gsheet-link" onclick="setSheetUrl(true)">시트 연결 주소 설정/변경</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PASSWORD OVERLAY ===================== -->
+<div class="pw-overlay" id="pwOverlay">
+  <div class="pw-card">
+    <h3>비밀번호를 입력해주세요</h3>
+    <input type="password" id="pwInput" placeholder="비밀번호" onkeydown="if(event.key==='Enter') checkPassword()">
+    <div id="pwError" class="form-msg err" style="margin-top:-6px; margin-bottom:8px;"></div>
+    <div class="pw-actions">
+      <button class="pw-cancel" onclick="closePasswordGate()">취소</button>
+      <button class="pw-confirm" onclick="checkPassword()">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const ADMIN_PASSWORD = 'pinskin123';
+  const STORAGE_KEY = 'pinskinAttendees';
+
+  function goTo(name){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+    if(name === 'register'){
+      document.getElementById('registerForm').reset();
+      document.getElementById('registerMsg').textContent = '';
+    }
+  }
+
+  function loadAttendees(){
+    try{
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    }catch(e){
+      return [];
+    }
+  }
+  function saveAttendees(list){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  }
+
+  function submitRegister(e){
+    e.preventDefault();
+    const name = document.getElementById('regName').value.trim();
+    const dept = document.getElementById('regDept').value.trim();
+    const msg = document.getElementById('registerMsg');
+    if(!name || !dept){
+      msg.textContent = '이름과 학과를 모두 입력해주세요.';
+      msg.className = 'form-msg err';
+      return false;
+    }
+    const list = loadAttendees();
+    list.push({
+      name, dept,
+      time: new Date().toLocaleString('ko-KR')
+    });
+    saveAttendees(list);
+    msg.textContent = '등록이 완료되었습니다!';
+    msg.className = 'form-msg ok';
+    document.getElementById('registerForm').reset();
+    return false;
+  }
+
+  /* ---------- password gate ---------- */
+  function openPasswordGate(){
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwError').textContent = '';
+    document.getElementById('pwOverlay').classList.add('active');
+    setTimeout(() => document.getElementById('pwInput').focus(), 50);
+  }
+  function closePasswordGate(){
+    document.getElementById('pwOverlay').classList.remove('active');
+  }
+  function checkPassword(){
+    const val = document.getElementById('pwInput').value;
+    if(val === ADMIN_PASSWORD){
+      closePasswordGate();
+      renderAdminList();
+      goTo('admin');
+    }else{
+      document.getElementById('pwError').textContent = '비밀번호가 올바르지 않습니다.';
+    }
+  }
+
+  /* ---------- admin panel ---------- */
+  function toggleAddForm(){
+    const f = document.getElementById('addForm');
+    f.style.display = (f.style.display === 'none') ? 'block' : 'none';
+  }
+  function adminAdd(){
+    const nameEl = document.getElementById('addName');
+    const deptEl = document.getElementById('addDept');
+    const name = nameEl.value.trim();
+    const dept = deptEl.value.trim();
+    if(!name || !dept){
+      alert('이름과 학과를 모두 입력해주세요.');
+      return;
+    }
+    const list = loadAttendees();
+    list.push({ name, dept, time: new Date().toLocaleString('ko-KR') });
+    saveAttendees(list);
+    nameEl.value = '';
+    deptEl.value = '';
+    document.getElementById('addForm').style.display = 'none';
+    renderAdminList();
+  }
+  function adminDelete(index){
+    const list = loadAttendees();
+    list.splice(index, 1);
+    saveAttendees(list);
+    renderAdminList();
+  }
+  function renderAdminList(){
+    const list = loadAttendees();
+    const container = document.getElementById('attendeeList');
+    const emptyNote = document.getElementById('emptyNote');
+    document.getElementById('adminCount').textContent = `총 ${list.length}명`;
+
+    if(list.length === 0){
+      container.innerHTML = '';
+      emptyNote.style.display = 'block';
+      return;
+    }
+    emptyNote.style.display = 'none';
+    container.innerHTML = list.map((a, i) => `
+      <div class="attendee-row">
+        <div class="attendee-info">
+          <span class="name">${escapeHtml(a.name)}</span>
+          <span class="dept">${escapeHtml(a.dept)}</span>
+          <span class="time">${escapeHtml(a.time || '')}</span>
+        </div>
+        <button class="del-btn" onclick="adminDelete(${i})" title="삭제">×</button>
+      </div>
+    `).join('');
+  }
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, c => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[c]));
+  }
+
+  /* ---------- google sheet export ---------- */
+  const SHEET_URL_KEY = 'pinskinSheetUrl';
+
+  function setSheetUrl(forcePrompt){
+    let url = localStorage.getItem(SHEET_URL_KEY) || '';
+    if(forcePrompt || !url){
+      const input = prompt('구글 시트와 연결된 Apps Script 웹앱 주소(URL)를 입력해주세요.\n(https://script.google.com/macros/... 로 시작)', url);
+      if(input === null) return url;
+      url = input.trim();
+      localStorage.setItem(SHEET_URL_KEY, url);
+    }
+    return url;
+  }
+
+  function saveToGoogleSheet(){
+    const btn = document.getElementById('gsheetBtn');
+    const status = document.getElementById('gsheetStatus');
+    const url = setSheetUrl(false);
+    if(!url){
+      status.textContent = '먼저 시트 연결 주소를 설정해주세요.';
+      status.className = 'gsheet-status err';
+      return;
+    }
+    const list = loadAttendees();
+    btn.disabled = true;
+    status.textContent = '저장 중...';
+    status.className = 'gsheet-status';
+
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ attendees: list, savedAt: new Date().toLocaleString('ko-KR') })
+    })
+      .then(res => res.json().catch(() => ({})))
+      .then(() => {
+        status.textContent = `참석자 ${list.length}명이 구글 시트에 저장되었습니다!`;
+        status.className = 'gsheet-status ok';
+      })
+      .catch(() => {
+        status.textContent = '저장에 실패했습니다. 시트 연결 주소를 확인해주세요.';
+        status.className = 'gsheet-status err';
+      })
+      .finally(() => {
+        btn.disabled = false;
+      });
+  }
+</script>
+
+</body>
+</html>
