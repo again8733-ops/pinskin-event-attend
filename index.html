@@ -415,29 +415,9 @@
   </div>
 </div>
 
-<!-- ===================== ENTRY GATE OVERLAY ===================== -->
-<div class="pw-overlay active" id="entryOverlay">
-  <div class="pw-card">
-    <h3>입장 코드를 입력해주세요</h3>
-    <input type="password" id="entryInput" placeholder="입장 코드" onkeydown="if(event.key==='Enter') checkEntry()">
-    <div id="entryError" class="form-msg err" style="margin-top:-6px; margin-bottom:8px;"></div>
-    <div class="pw-actions">
-      <button class="pw-confirm" style="width:100%" onclick="checkEntry()">입장하기</button>
-    </div>
-  </div>
-</div>
-<script>
-  if (localStorage.getItem('pinskinEntryVerified') === 'true') {
-    document.getElementById('entryOverlay').classList.remove('active');
-  }
-</script>
-
 <script>
   const ADMIN_PASSWORD = 'pinskin123';
   const STORAGE_KEY = 'pinskinAttendees';
-
-  const ENTRY_PASSWORD = '041221';
-  const ENTRY_KEY = 'pinskinEntryVerified';
 
   function goTo(name){
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -446,20 +426,6 @@
       document.getElementById('registerForm').reset();
       document.getElementById('registerMsg').textContent = '';
     }
-  }
-
-  /* ---------- entry gate ---------- */
-  function checkEntry(){
-    const val = document.getElementById('entryInput').value;
-    if(val === ENTRY_PASSWORD){
-      localStorage.setItem(ENTRY_KEY, 'true');
-      document.getElementById('entryOverlay').classList.remove('active');
-    }else{
-      document.getElementById('entryError').textContent = '입장 코드가 올바르지 않습니다.';
-    }
-  }
-  if(document.getElementById('entryOverlay').classList.contains('active')){
-    setTimeout(() => document.getElementById('entryInput').focus(), 50);
   }
 
   function loadAttendees(){
