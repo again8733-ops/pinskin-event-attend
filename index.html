@@ -265,7 +265,7 @@
     color:#9aa4bd; font-size:13px; font-weight:600;
   }
 
-  /* ---------- google sheet export ---------- */
+  /* ---------- google sheet refresh ---------- */
   .gsheet-block{
     max-width:560px; margin: 34px auto 0;
     padding-top: 24px;
@@ -283,11 +283,6 @@
   }
   .gsheet-btn:hover{ background:#1558b0; transform: translateY(-2px); }
   .gsheet-btn:disabled{ opacity:.6; cursor:default; transform:none; }
-  .gsheet-link{
-    display:inline-block; margin-top:12px;
-    font-size:12px; color:#9aa4bd; font-weight:700;
-    text-decoration:underline; cursor:pointer; background:none; border:none;
-  }
   .gsheet-status{
     margin-top:12px; font-size:12.5px; font-weight:700; min-height:16px;
   }
@@ -430,14 +425,13 @@
     <div class="empty-note" id="emptyNote" style="display:none;">아직 등록된 참석자가 없어요.</div>
 
     <div class="gsheet-block">
-      <button class="gsheet-btn" id="gsheetBtn" onclick="saveToGoogleSheet()">구글 시트로 저장받기</button>
+      <button class="gsheet-btn" id="gsheetBtn" onclick="refreshAdminList()">🔄 구글 시트에서 새로고침</button>
       <div id="gsheetStatus" class="gsheet-status"></div>
-      <button type="button" class="gsheet-link" onclick="setSheetUrl(true)">시트 연결 주소 설정/변경</button>
     </div>
   </div>
 </section>
 
-<!-- ===================== PASSWORD OVERLAY ===================== -->
+<!-- ===================== ADMIN PASSWORD OVERLAY ===================== -->
 <div class="pw-overlay" id="pwOverlay">
   <div class="pw-card">
     <h3>비밀번호를 입력해주세요</h3>
@@ -445,14 +439,37 @@
     <div id="pwError" class="form-msg err" style="margin-top:-6px; margin-bottom:8px;"></div>
     <div class="pw-actions">
       <button class="pw-cancel" onclick="closePasswordGate()">취소</button>
-      <button class="pw-confirm" onclick="checkPassword()">확인</button>
+      <button class="pw-confirm" id="pwConfirmBtn" onclick="checkPassword()">확인</button>
     </div>
   </div>
 </div>
 
+<!-- ===================== ENTRY GATE OVERLAY ===================== -->
+<div class="pw-overlay active" id="entryOverlay">
+  <div class="pw-card">
+    <h3>입장 코드를 입력해주세요</h3>
+    <input type="password" id="entryInput" placeholder="입장 코드" onkeydown="if(event.key==='Enter') checkEntry()">
+    <div id="entryError" class="form-msg err" style="margin-top:-6px; margin-bottom:8px;"></div>
+    <div class="pw-actions">
+      <button class="pw-confirm" style="width:100%" onclick="checkEntry()">입장하기</button>
+    </div>
+  </div>
+</div>
 <script>
-  const ADMIN_PASSWORD = 'pinskin123';
-  const STORAGE_KEY = 'pinskinAttendees';
+  if (localStorage.getItem('pinskinEntryVerified') === 'true') {
+    document.getElementById('entryOverlay').classList.remove('active');
+  }
+</script>
+
+<script>
+  // 구글 시트 Apps Script 배포 후 이 URL을 교체하세요 (아래 안내 참고)
+  const API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+  const ENTRY_PASSWORD = '041221';
+  const ENTRY_KEY = 'pinskinEntryVerified';
+
+  let adminPassword = null;
+  let currentList = [];
 
   function goTo(name){
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -463,17 +480,30 @@
     }
   }
 
-  function loadAttendees(){
-    try{
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    }catch(e){
-      return [];
+  /* ---------- entry gate ---------- */
+  function checkEntry(){
+    const val = document.getElementById('entryInput').value;
+    if(val === ENTRY_PASSWORD){
+      localStorage.setItem(ENTRY_KEY, 'true');
+      document.getElementById('entryOverlay').classList.remove('active');
+    }else{
+      document.getElementById('entryError').textContent = '입장 코드가 올바르지 않습니다.';
     }
   }
-  function saveAttendees(list){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  if(document.getElementById('entryOverlay').classList.contains('active')){
+    setTimeout(() => document.getElementById('entryInput').focus(), 50);
   }
 
+  /* ---------- backend call helper ---------- */
+  function apiCall(action, payload){
+    return fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ action }, payload))
+    }).then(res => res.json());
+  }
+
+  /* ---------- register ---------- */
   function submitRegister(e){
     e.preventDefault();
     const name = document.getElementById('regName').value.trim();
@@ -484,19 +514,27 @@
       msg.className = 'form-msg err';
       return false;
     }
-    const list = loadAttendees();
-    list.push({
-      name, dept,
-      time: new Date().toLocaleString('ko-KR')
-    });
-    saveAttendees(list);
-    msg.textContent = '등록이 완료되었습니다!';
-    msg.className = 'form-msg ok';
-    document.getElementById('registerForm').reset();
+    msg.textContent = '등록 중...';
+    msg.className = 'form-msg';
+    apiCall('register', { name, dept })
+      .then(res => {
+        if(res.status === 'ok'){
+          msg.textContent = '등록이 완료되었습니다!';
+          msg.className = 'form-msg ok';
+          document.getElementById('registerForm').reset();
+        }else{
+          msg.textContent = res.message || '등록에 실패했습니다.';
+          msg.className = 'form-msg err';
+        }
+      })
+      .catch(() => {
+        msg.textContent = '서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
+        msg.className = 'form-msg err';
+      });
     return false;
   }
 
-  /* ---------- password gate ---------- */
+  /* ---------- admin password gate ---------- */
   function openPasswordGate(){
     document.getElementById('pwInput').value = '';
     document.getElementById('pwError').textContent = '';
@@ -508,13 +546,27 @@
   }
   function checkPassword(){
     const val = document.getElementById('pwInput').value;
-    if(val === ADMIN_PASSWORD){
-      closePasswordGate();
-      renderAdminList();
-      goTo('admin');
-    }else{
-      document.getElementById('pwError').textContent = '비밀번호가 올바르지 않습니다.';
-    }
+    const btn = document.getElementById('pwConfirmBtn');
+    const err = document.getElementById('pwError');
+    btn.disabled = true;
+    err.textContent = '';
+    apiCall('list', { password: val })
+      .then(res => {
+        if(res.status === 'ok'){
+          adminPassword = val;
+          closePasswordGate();
+          renderAdminList(res.attendees);
+          goTo('admin');
+        }else{
+          err.textContent = res.message || '비밀번호가 올바르지 않습니다.';
+        }
+      })
+      .catch(() => {
+        err.textContent = '서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      })
+      .finally(() => {
+        btn.disabled = false;
+      });
   }
 
   /* ---------- admin panel ---------- */
@@ -531,40 +583,71 @@
       alert('이름과 학과를 모두 입력해주세요.');
       return;
     }
-    const list = loadAttendees();
-    list.push({ name, dept, time: new Date().toLocaleString('ko-KR') });
-    saveAttendees(list);
-    nameEl.value = '';
-    deptEl.value = '';
-    document.getElementById('addForm').style.display = 'none';
-    renderAdminList();
+    apiCall('add', { name, dept, password: adminPassword })
+      .then(res => {
+        if(res.status === 'ok'){
+          nameEl.value = '';
+          deptEl.value = '';
+          document.getElementById('addForm').style.display = 'none';
+          refreshAdminList();
+        }else{
+          alert(res.message || '추가에 실패했습니다.');
+        }
+      })
+      .catch(() => alert('서버 연결에 실패했습니다.'));
   }
-  function adminDelete(index){
-    const list = loadAttendees();
-    list.splice(index, 1);
-    saveAttendees(list);
-    renderAdminList();
+  function adminDelete(id){
+    if(!confirm('삭제하시겠습니까?')) return;
+    apiCall('delete', { id, password: adminPassword })
+      .then(res => {
+        if(res.status === 'ok'){
+          refreshAdminList();
+        }else{
+          alert(res.message || '삭제에 실패했습니다.');
+        }
+      })
+      .catch(() => alert('서버 연결에 실패했습니다.'));
   }
-  function renderAdminList(){
-    const list = loadAttendees();
+  function refreshAdminList(){
+    const status = document.getElementById('gsheetStatus');
+    status.textContent = '불러오는 중...';
+    status.className = 'gsheet-status';
+    apiCall('list', { password: adminPassword })
+      .then(res => {
+        if(res.status === 'ok'){
+          renderAdminList(res.attendees);
+          status.textContent = '최신 명단을 불러왔습니다.';
+          status.className = 'gsheet-status ok';
+        }else{
+          status.textContent = res.message || '불러오기에 실패했습니다.';
+          status.className = 'gsheet-status err';
+        }
+      })
+      .catch(() => {
+        status.textContent = '서버 연결에 실패했습니다.';
+        status.className = 'gsheet-status err';
+      });
+  }
+  function renderAdminList(list){
+    currentList = list || [];
     const container = document.getElementById('attendeeList');
     const emptyNote = document.getElementById('emptyNote');
-    document.getElementById('adminCount').textContent = `총 ${list.length}명`;
+    document.getElementById('adminCount').textContent = `총 ${currentList.length}명`;
 
-    if(list.length === 0){
+    if(currentList.length === 0){
       container.innerHTML = '';
       emptyNote.style.display = 'block';
       return;
     }
     emptyNote.style.display = 'none';
-    container.innerHTML = list.map((a, i) => `
+    container.innerHTML = currentList.map((a) => `
       <div class="attendee-row">
         <div class="attendee-info">
           <span class="name">${escapeHtml(a.name)}</span>
           <span class="dept">${escapeHtml(a.dept)}</span>
           <span class="time">${escapeHtml(a.time || '')}</span>
         </div>
-        <button class="del-btn" onclick="adminDelete(${i})" title="삭제">×</button>
+        <button class="del-btn" onclick="adminDelete('${escapeHtml(a.id)}')" title="삭제">×</button>
       </div>
     `).join('');
   }
@@ -572,53 +655,6 @@
     return String(str).replace(/[&<>"']/g, c => ({
       '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
     }[c]));
-  }
-
-  /* ---------- google sheet export ---------- */
-  const SHEET_URL_KEY = 'pinskinSheetUrl';
-
-  function setSheetUrl(forcePrompt){
-    let url = localStorage.getItem(SHEET_URL_KEY) || '';
-    if(forcePrompt || !url){
-      const input = prompt('구글 시트와 연결된 Apps Script 웹앱 주소(URL)를 입력해주세요.\n(https://script.google.com/macros/... 로 시작)', url);
-      if(input === null) return url;
-      url = input.trim();
-      localStorage.setItem(SHEET_URL_KEY, url);
-    }
-    return url;
-  }
-
-  function saveToGoogleSheet(){
-    const btn = document.getElementById('gsheetBtn');
-    const status = document.getElementById('gsheetStatus');
-    const url = setSheetUrl(false);
-    if(!url){
-      status.textContent = '먼저 시트 연결 주소를 설정해주세요.';
-      status.className = 'gsheet-status err';
-      return;
-    }
-    const list = loadAttendees();
-    btn.disabled = true;
-    status.textContent = '저장 중...';
-    status.className = 'gsheet-status';
-
-    fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ attendees: list, savedAt: new Date().toLocaleString('ko-KR') })
-    })
-      .then(res => res.json().catch(() => ({})))
-      .then(() => {
-        status.textContent = `참석자 ${list.length}명이 구글 시트에 저장되었습니다!`;
-        status.className = 'gsheet-status ok';
-      })
-      .catch(() => {
-        status.textContent = '저장에 실패했습니다. 시트 연결 주소를 확인해주세요.';
-        status.className = 'gsheet-status err';
-      })
-      .finally(() => {
-        btn.disabled = false;
-      });
   }
 </script>
 
