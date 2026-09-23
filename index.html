@@ -18,7 +18,7 @@
     --shadow: rgba(6, 15, 36, 0.35);
   }
   *{ box-sizing: border-box; margin:0; padding:0; word-break: keep-all; }
-  html,body{ height:100%; width:100%; overflow-x:hidden; }
+  html,body{ height:100%; width:100%; overflow-x:hidden; -webkit-text-size-adjust:100%; }
   body{
     font-family: 'Malgun Gothic','Segoe UI',system-ui,-apple-system,sans-serif;
     background: var(--navy-deep);
@@ -82,9 +82,14 @@
     margin-top:auto;
   }
   .home-header img{
-    width:45vw; max-width:220px; height:45vw; max-height:220px; object-fit:contain;
-    margin-bottom: -30px;
-    animation: floatSlow 5s ease-in-out infinite;
+    display:block; width:auto; height:30vh; min-height:150px; max-height:320px; max-width:70vw;
+    object-fit:contain; opacity:1;
+    margin: 0 auto 18px;
+    animation: floatLogo 5s ease-in-out infinite;
+  }
+  @keyframes floatLogo{
+    0%,100%{ transform: translateY(0); }
+    50%{ transform: translateY(-8px); }
   }
   .home-header h1{
     color: var(--navy); font-size:30px; letter-spacing:1px; font-weight:900;
@@ -96,7 +101,7 @@
     color: var(--navy-soft);
     font-size: 15px;
     margin-top:10px;
-    margin-bottom: 48px;
+    margin-bottom: 30px;
     letter-spacing:0.5px;
     font-weight:700;
     text-align:center;
@@ -148,6 +153,14 @@
   .banner p{
     font-size: 13px; color:#5b6786; line-height:1.6;
   }
+  @media (max-height: 800px){
+    .home-inner{ padding: 16px 24px; }
+    .home-header img{ height:24vh; min-height:130px; margin-bottom:10px; }
+    .home-tagline{ margin-bottom:18px; }
+    .banner{ padding: 18px 22px; }
+    .banner-badge{ margin-bottom:8px; }
+    .banner-grid .banner + .banner{ margin-top:12px; }
+  }
 
   /* ================= DETAIL SCREENS ================= */
   .detail-screen{
@@ -178,7 +191,7 @@
   .back-btn svg{ margin-right:8px; }
   .back-btn:hover{ transform: translateX(-3px); background: var(--navy-mid); }
   .detail-topbar .mini-logo{
-    width:34px; height:34px; object-fit:contain;
+    width:auto; height:44px; object-fit:contain;
   }
 
   .detail-hero{
@@ -209,7 +222,7 @@
   .form-group input{
     width:100%; padding: 13px 14px;
     border: 1.5px solid #d7deee; border-radius: 12px;
-    font-size:15px; color: var(--navy);
+    font-size:16px; color: var(--navy);
     outline:none;
     transition: border-color .2s ease;
     font-family: inherit;
@@ -231,6 +244,22 @@
   }
   .form-msg.ok{ color:#1a8a4d; }
   .form-msg.err{ color:#e63946; }
+  .submit-btn:disabled{ opacity:.6; cursor:default; transform:none; }
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed; left:0; right:0; bottom:32px; z-index:30;
+    text-align:center; pointer-events:none;
+    opacity:0; visibility:hidden; transition: opacity .3s ease;
+  }
+  .toast.show{ opacity:1; visibility:visible; }
+  .toast span{
+    display:inline-block; max-width:88vw;
+    background: var(--navy); color:#fff;
+    padding: 14px 22px; border-radius:999px;
+    font-size:14px; font-weight:800;
+    box-shadow: 0 10px 30px rgba(6,15,36,0.35);
+  }
 
   /* ---------- attendance checkboxes ---------- */
   .check-group{ margin: 4px 0 18px; text-align:left; }
@@ -357,7 +386,7 @@
   .pw-card input{
     width:100%; padding: 12px 14px;
     border: 1.5px solid #d7deee; border-radius: 12px;
-    font-size:15px; text-align:center;
+    font-size:16px; text-align:center;
     outline:none; margin-bottom:12px;
     font-family: inherit;
   }
@@ -386,7 +415,7 @@
 <section id="screen-home" class="screen active">
   <div class="home-inner">
     <div class="home-header">
-      <img src="logo.png" alt="Pinskin Logo">
+      <img src="logo-cropped.png" alt="Pinskin Logo">
       <h1>핀스킨 행사 참여</h1>
     </div>
     <div class="home-tagline">아래 버튼을 눌러 참석 등록을 진행해주세요</div>
@@ -415,7 +444,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg>
         홈으로
       </button>
-      <img src="logo.png" class="mini-logo" alt="logo">
+      <img src="logo-cropped.png" class="mini-logo" alt="logo">
     </div>
     <div class="detail-hero">
       <h2>참여 등록</h2>
@@ -435,7 +464,7 @@
           <label class="check-item"><input type="checkbox" id="regSeminar"><span>세미나 참석</span></label>
           <label class="check-item"><input type="checkbox" id="regParty"><span>뒷풀이 참석</span></label>
         </div>
-        <button type="submit" class="submit-btn">완료</button>
+        <button type="submit" class="submit-btn" id="regSubmit">완료</button>
         <div id="registerMsg" class="form-msg"></div>
       </form>
     </div>
@@ -450,7 +479,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 18l-6-6 6-6"/></svg>
         홈으로
       </button>
-      <img src="logo.png" class="mini-logo" alt="logo">
+      <img src="logo-cropped.png" class="mini-logo" alt="logo">
     </div>
     <div class="detail-hero">
       <h2>참석자 관리</h2>
@@ -494,6 +523,8 @@
   </div>
 </section>
 
+<div class="toast" id="toast"><span></span></div>
+
 <!-- ===================== ADMIN PASSWORD OVERLAY ===================== -->
 <div class="pw-overlay" id="pwOverlay">
   <div class="pw-card">
@@ -526,6 +557,15 @@
     }
   }
 
+  let toastTimer = null;
+  function showToast(text){
+    const t = document.getElementById('toast');
+    t.querySelector('span').textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+  }
+
   /* ---------- backend call helper ---------- */
   function apiCall(action, payload){
     return fetch(API_URL, {
@@ -548,14 +588,18 @@
     }
     const seminar = document.getElementById('regSeminar').checked;
     const party = document.getElementById('regParty').checked;
-    msg.textContent = '등록 중...';
+    const btn = document.getElementById('regSubmit');
+    if(btn.disabled) return false;
+    btn.disabled = true;
+    btn.textContent = '등록 중...';
+    msg.textContent = '';
     msg.className = 'form-msg';
     apiCall('register', { name, dept, seminar, party })
       .then(res => {
         if(res.status === 'ok'){
-          msg.textContent = '등록이 완료되었습니다!';
-          msg.className = 'form-msg ok';
           document.getElementById('registerForm').reset();
+          goTo('home');
+          showToast('등록이 완료되었습니다!');
         }else{
           msg.textContent = res.message || '등록에 실패했습니다.';
           msg.className = 'form-msg err';
@@ -564,6 +608,10 @@
       .catch(() => {
         msg.textContent = '서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.';
         msg.className = 'form-msg err';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = '완료';
       });
     return false;
   }
