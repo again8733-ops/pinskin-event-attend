@@ -445,8 +445,12 @@
 </div>
 
 <script>
-  // 구글 시트 Apps Script 배포 후 이 URL을 교체하세요 (안내 참고)
-  const API_URL = 'PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+  const API_URL = 'https://script.google.com/macros/s/AKfycbyXOI1MDwtvPijDZofhxZZvo2V3dIHnKT57o4StmZ3GzeYmh03X_wBmJG6A9Qg1liWFvQ/exec';
+
+  function formatTime(t){
+    const d = new Date(t);
+    return isNaN(d) ? String(t || '') : d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+  }
 
   let adminPassword = null;
 
@@ -610,7 +614,7 @@
         <div class="attendee-info">
           <span class="name">${escapeHtml(a.name)}</span>
           <span class="dept">${escapeHtml(a.dept)}</span>
-          <span class="time">${escapeHtml(a.time || '')}</span>
+          <span class="time">${escapeHtml(formatTime(a.time))}</span>
         </div>
         <button class="del-btn" onclick="adminDelete('${escapeHtml(a.id)}')" title="삭제">×</button>
       </div>
