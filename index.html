@@ -405,6 +405,30 @@
   .pw-confirm{ background: var(--navy); color:#fff; }
   .pw-confirm:hover{ background: var(--navy-mid); }
   .pw-cancel:hover{ background:#dfe4ef; }
+
+  /* ---------- seminar group result ---------- */
+  #groupOverlay{ z-index: 25; }
+  .group-card{
+    position:relative;
+    width:88vw; max-width:340px;
+    padding: 40px 28px 32px;
+  }
+  .group-close{
+    position:absolute; top:14px; right:14px;
+    width:34px; height:34px; border-radius:50%;
+    background:#f1f3f8; color: var(--navy);
+    border:none; font-size:18px; font-weight:900; line-height:1;
+    cursor:pointer;
+  }
+  .group-close:hover{ background:#e2e6f0; }
+  .group-badge{
+    display:inline-block; font-size:11px; font-weight:800; letter-spacing:1.5px;
+    color: var(--navy); background: var(--off-white);
+    padding: 5px 12px; border-radius:999px; margin-bottom:16px;
+  }
+  .group-name{ font-size:16px; font-weight:800; color:#5b6786; margin-bottom:6px; }
+  .group-number{ font-size:52px; font-weight:900; color: var(--navy); line-height:1.2; }
+  .group-sub{ margin-top:10px; font-size:13px; color:#9aa4bd; font-weight:600; }
 </style>
 </head>
 <body>
@@ -530,6 +554,17 @@
 
 <div class="toast" id="toast"><span></span></div>
 
+<!-- ===================== SEMINAR GROUP RESULT ===================== -->
+<div class="pw-overlay" id="groupOverlay">
+  <div class="pw-card group-card">
+    <button class="group-close" onclick="closeGroupOverlay()" aria-label="닫기">×</button>
+    <div class="group-badge">세미나 조 배정</div>
+    <div class="group-name" id="groupPersonName"></div>
+    <div class="group-number" id="groupNumber"></div>
+    <p class="group-sub">배정된 조로 이동해주세요</p>
+  </div>
+</div>
+
 <!-- ===================== DELETE CONFIRM OVERLAY ===================== -->
 <div class="pw-overlay" id="confirmOverlay">
   <div class="pw-card">
@@ -574,6 +609,31 @@
     }
   }
 
+  const SEMINAR_GROUP_LISTS = {
+    1: ['이건주','강경민','최유진','심혜연','김가현','윤혜원','장준서','정진','김솔미','신은재','박세인'],
+    2: ['김지유','권준영','노현지','김효은','김민정','이솔비','박동현','김현상','전혜성','하가영','허규연'],
+    3: ['옥서윤','김태형','서여원','박한별','이영채','이효정','박재영','박범근','이도현','심연주','문은비'],
+    4: ['심우연','유시후','장보빈','심유빈','김희수','김서영','배준혁','이서현','이재혁','배은빈','김채윤'],
+    5: ['최해원','서현우','정예진','홍수빈','서민정','정동윤','피찬진','김효주','정지윤','김한이','구민아'],
+    6: ['김현지','이재연','조유빈','오민영','곽라율','팽재완','김덕승','박제영','최소려','전초현'],
+    7: ['강예은','하세진','황지영','주소현','최자은','한태영','홍명완','이부강','박수빈','김수빈'],
+    8: ['이유나','강경필','김민주','이가헌','전아현','남혜린','이승윤','이민재','이아진','김민지'],
+    9: ['김수호','박지환','조민주','최아영','허성미','황정은','서성호','이승태','최지은','오지수','차정윤'],
+  };
+  const SEMINAR_GROUPS = {};
+  Object.keys(SEMINAR_GROUP_LISTS).forEach(g => {
+    SEMINAR_GROUP_LISTS[g].forEach(n => { SEMINAR_GROUPS[n] = Number(g); });
+  });
+
+  function showGroupOverlay(name, group){
+    document.getElementById('groupPersonName').textContent = name + '님은';
+    document.getElementById('groupNumber').textContent = group + '조';
+    document.getElementById('groupOverlay').classList.add('active');
+  }
+  function closeGroupOverlay(){
+    document.getElementById('groupOverlay').classList.remove('active');
+  }
+
   let toastTimer = null;
   function showToast(text){
     const t = document.getElementById('toast');
@@ -616,7 +676,12 @@
         if(res.status === 'ok'){
           document.getElementById('registerForm').reset();
           goTo('home');
-          showToast('등록이 완료되었습니다!');
+          const group = seminar ? SEMINAR_GROUPS[name] : undefined;
+          if(group){
+            showGroupOverlay(name, group);
+          }else{
+            showToast('등록이 완료되었습니다!');
+          }
         }else{
           msg.textContent = res.message || '등록에 실패했습니다.';
           msg.className = 'form-msg err';
